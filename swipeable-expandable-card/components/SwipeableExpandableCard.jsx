@@ -103,7 +103,6 @@ const SwipeableExpandableCard = ({
 
 const styles = StyleSheet.create({
   root: {
-    width: '100%',
     overflow: 'hidden',
   },
   hidden: {

@@ -20,10 +20,10 @@ const App = () => {
       <View style={styles.baseDetails}>
         <Text style={styles.detailLabel}>Product Name:</Text>
         <Text style={styles.detailValue}>Premium Widget 3000</Text>
-        
+
         <Text style={styles.detailLabel}>Price:</Text>
         <Text style={styles.detailValue}>$199.99</Text>
-        
+
         <Text style={styles.detailLabel}>Rating:</Text>
         <Text style={styles.detailValue}>★★★★☆ (4.2/5)</Text>
       </View>
@@ -39,7 +39,7 @@ const App = () => {
         to meet all your widget needs. Crafted with premium materials and tested under rigorous
         conditions, this widget outperforms all competitors in its class.
       </Text>
-      
+
       <Text style={styles.sectionTitle}>Features</Text>
       <View style={styles.featuresList}>
         <Text style={styles.featureItem}>• Advanced processing capabilities</Text>
@@ -49,7 +49,7 @@ const App = () => {
         <Text style={styles.featureItem}>• Durable construction</Text>
         <Text style={styles.featureItem}>• Water and dust resistant (IP68)</Text>
       </View>
-      
+
       <Text style={styles.sectionTitle}>Technical Specifications</Text>
       <View style={styles.specList}>
         <View style={styles.specItem}>
@@ -73,19 +73,19 @@ const App = () => {
           <Text style={styles.specValue}>Aluminum, Gorilla Glass</Text>
         </View>
       </View>
-      
+
       <Text style={styles.sectionTitle}>User Reviews</Text>
       <View style={styles.reviewsList}>
         <View style={styles.reviewItem}>
           <Text style={styles.reviewHeader}>Excellent product!</Text>
           <Text style={styles.reviewRating}>★★★★★</Text>
           <Text style={styles.reviewText}>
-            I've been using the Premium Widget 3000 for three months now and I'm incredibly 
+            I've been using the Premium Widget 3000 for three months now and I'm incredibly
             impressed with its performance. It's reliable, fast, and the battery life is amazing.
           </Text>
           <Text style={styles.reviewerName}>- John D.</Text>
         </View>
-        
+
         <View style={styles.reviewItem}>
           <Text style={styles.reviewHeader}>Great value for money</Text>
           <Text style={styles.reviewRating}>★★★★☆</Text>
@@ -95,7 +95,7 @@ const App = () => {
           </Text>
           <Text style={styles.reviewerName}>- Sarah M.</Text>
         </View>
-        
+
         <View style={styles.reviewItem}>
           <Text style={styles.reviewHeader}>Exceeded expectations</Text>
           <Text style={styles.reviewRating}>★★★★★</Text>
@@ -106,22 +106,22 @@ const App = () => {
           <Text style={styles.reviewerName}>- Robert T.</Text>
         </View>
       </View>
-      
+
       <Text style={styles.sectionTitle}>Warranty Information</Text>
       <Text style={styles.paragraph}>
-        The Premium Widget 3000 comes with a 2-year limited warranty covering manufacturing 
-        defects and hardware failures under normal use. Extended warranty options are 
+        The Premium Widget 3000 comes with a 2-year limited warranty covering manufacturing
+        defects and hardware failures under normal use. Extended warranty options are
         available for purchase separately.
       </Text>
-      
+
       <Text style={styles.sectionTitle}>Package Contents</Text>
-      <View style={styles.packageList}>
+      <View>
         <Text style={styles.packageItem}>• 1 × Premium Widget 3000</Text>
         <Text style={styles.packageItem}>• 1 × USB-C charging cable</Text>
         <Text style={styles.packageItem}>• 1 × Quick start guide</Text>
-        <Text style={styles.packageItem}>• 1 × Warranty card</Text>
+        <Text style={[styles.packageItem, { marginBottom: 0 }]}>• 1 × Warranty card</Text>
       </View>
-    </View>
+    </View >
   );
 
   // Bottom content with action buttons
@@ -147,24 +147,21 @@ const App = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Product Details</Text>
       </View>
-      
-      <View style={styles.cardContainer}>
-        <ExpandableCard
-          rootStyling={styles.card}
-          maxHeightForExpandableContent={300} // Set a height that will require scrolling
-          baseContent={<SimpleBaseContent />}
-          expandableContent={<LargeExpandableContent />}
-          bottomContent={<ActionButtons />}
-          onExpansion={handleExpansion}
-          onCollapse={handleCollapse}
-        />
-      </View>
-      
+
+      <ExpandableCard
+        rootStyling={styles.card}
+        maxHeightForExpandableContent={400} // Set a height that will require scrolling
+        baseContent={<SimpleBaseContent />}
+        expandableContent={<LargeExpandableContent />}
+        bottomContent={<ActionButtons />}
+        onExpansion={handleExpansion}
+        onCollapse={handleCollapse}
+      />
+
       <View style={styles.footer}>
         <Text style={styles.footerText}>
           Try swiping up on the card to see more details, or tap to expand/collapse.
@@ -197,12 +194,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    overflow: 'hidden',
   },
   baseContent: {
     padding: 16,
@@ -309,13 +300,10 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'right',
   },
-  packageList: {
-    marginBottom: 16,
-  },
   packageItem: {
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 4,
+    marginBottom: 0,
     color: '#333',
   },
   actionButtons: {
