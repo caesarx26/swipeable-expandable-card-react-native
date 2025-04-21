@@ -5,7 +5,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StatusBar,
 } from 'react-native';
 import ExpandableCard from '../components/SwipeableExpandableCard'; // Adjust path as needed
 
@@ -149,7 +148,7 @@ const App = () => {
     <SafeAreaView style={styles.container}>
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Product Details</Text>
+        <Text style={styles.headerTitle}>This Product</Text>
       </View>
 
       <ExpandableCard
