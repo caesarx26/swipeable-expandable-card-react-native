@@ -28,7 +28,7 @@ const SwipeableExpandableCard = ({
   const [pendingAnimation, setPendingAnimation] = useState(null);
 
   const isExpandedRef = useRef(false);
-  const isAnimatingRef = useRef(false);
+  const isAnimatingRef = useRef(false); // This is the key ref
   const scrollViewRef = useRef(null);
   const heightAnim = useRef(new Animated.Value(0)).current;
   const animationRef = useRef(null);
@@ -36,14 +36,12 @@ const SwipeableExpandableCard = ({
   const gestureStateRef = useRef({ dy: 0 });
   const contentMeasuredRef = useRef(false);
 
-  const swipeThreshold = 20; // Reduced threshold for better responsiveness
+  const swipeThreshold = 20;
 
-  // Compute total content height from the latest state values
   const getTotalContentHeight = () => {
     return expandableHeight + (bottomContent ? bottomHeight : 0);
   };
 
-  // Track how many measurements we've completed
   const measurementCount = useRef(0);
   const checkAllMeasurementsComplete = () => {
     measurementCount.current++;
@@ -56,30 +54,30 @@ const SwipeableExpandableCard = ({
     }
   };
 
-  // Animation function that doesn't depend on state updates
   const runAnimation = (toExpanded) => {
-    console.log(`Running animation to ${toExpanded ? 'expand' : 'collapse'}`);
+    console.log(`Attempting to run animation to ${toExpanded ? 'expand' : 'collapse'}`);
 
+    // Check if an animation is already in progress
     if (isAnimatingRef.current) {
-      console.log("Animation already in progress, skipping");
-      return;
+      console.log("Animation already in progress, skipping new animation request");
+      return; // Do not start a new animation if one is running
     }
 
     callbackTriggeredRef.current = false;
 
     if (animationRef.current) {
-      console.log("Stopping previous animation");
-      animationRef.current.stop();
+      console.log("Stopping previous animation (shouldn't happen if isAnimatingRef is checked)");
+      animationRef.current.stop(); // Still good practice to stop in case
     }
 
-    isAnimatingRef.current = true;
+    isAnimatingRef.current = true; // Set the flag when animation starts
 
     const totalContentHeight = getTotalContentHeight();
     const targetHeight = toExpanded
       ? Math.min(totalContentHeight, maxHeightForExpandableContent)
       : 0;
 
-    console.log(`Animating from ${heightAnim._value} to ${targetHeight}, totalHeight=${totalContentHeight}`);
+    console.log(`Starting animation from ${heightAnim._value} to ${targetHeight}, totalHeight=${totalContentHeight}`);
 
     animationRef.current = Animated.timing(heightAnim, {
       toValue: targetHeight,
@@ -88,8 +86,8 @@ const SwipeableExpandableCard = ({
     });
 
     animationRef.current.start((finished) => {
-      isAnimatingRef.current = false;
       console.log(`Animation ${finished ? 'completed' : 'interrupted'}`);
+      isAnimatingRef.current = false; // Unset the flag when animation finishes or is interrupted
 
       if (finished && !callbackTriggeredRef.current) {
         callbackTriggeredRef.current = true;
@@ -104,9 +102,14 @@ const SwipeableExpandableCard = ({
     });
   };
 
-  // Function to handle expansion/collapse
   const toggleExpansion = (shouldExpand) => {
     console.log(`toggleExpansion called with shouldExpand=${shouldExpand}`);
+
+    // Prevent toggling if an animation is currently running
+    if (isAnimatingRef.current) {
+      console.log("Animation in progress, ignoring toggle request.");
+      return;
+    }
 
     const newExpandedState = shouldExpand !== undefined ? shouldExpand : !isExpandedRef.current;
 
@@ -119,27 +122,31 @@ const SwipeableExpandableCard = ({
       setOverscrollDetected(false);
     }
 
-    // Always store the pending animation state. The useEffect will handle running it
-    // once the content is measured.
     console.log("Setting pending animation state:", newExpandedState);
     setPendingAnimation(newExpandedState);
   };
 
-  // Effect that runs when contentMeasured changes or pendingAnimation is set
   useEffect(() => {
     console.log(`useEffect for contentMeasured and pendingAnimation: contentMeasured=${contentMeasured}, pendingAnimation=${pendingAnimation}`);
-    if (contentMeasured && pendingAnimation !== null) {
-      console.log(`contentMeasured is true and pendingAnimation is set. Running animation for expansion: ${pendingAnimation}`);
+    if (contentMeasured && pendingAnimation !== null && !isAnimatingRef.current) {
+      console.log(`contentMeasured is true, pendingAnimation is set, and not animating. Running animation for expansion: ${pendingAnimation}`);
       runAnimation(pendingAnimation);
-      setPendingAnimation(null); // Clear the pending animation
+      setPendingAnimation(null);
+    } else if (isAnimatingRef.current) {
+      console.log("useEffect triggered but animation is already running.");
     }
-  }, [contentMeasured, pendingAnimation]); // Add pendingAnimation as a dependency
+  }, [contentMeasured, pendingAnimation]);
 
-  // This panResponder handles swipe gestures on the base content
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      // Do not set responder if animating
+      onStartShouldSetPanResponder: () => !isAnimatingRef.current,
       onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Do not set responder if animating
+        if (isAnimatingRef.current) {
+          return false;
+        }
+
         const shouldRespond = Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
           Math.abs(gestureState.dy) > 5;
 
@@ -151,6 +158,10 @@ const SwipeableExpandableCard = ({
         gestureStateRef.current = { dy: 0 };
       },
       onPanResponderMove: (_, gestureState) => {
+        // If animation started during the move, we should stop processing
+        if (isAnimatingRef.current) {
+          return;
+        }
         gestureStateRef.current = gestureState;
 
         if (Math.abs(gestureState.dy) > 10) {
@@ -159,6 +170,13 @@ const SwipeableExpandableCard = ({
       },
       onPanResponderRelease: (_, gestureState) => {
         console.log(`Pan released: dy=${gestureState.dy}, threshold=${swipeThreshold}`);
+
+        // Only process release if not animating
+        if (isAnimatingRef.current) {
+          console.log("Animation in progress, ignoring pan release.");
+          gestureStateRef.current = { dy: 0 }; // Reset gesture state
+          return;
+        }
 
         if (gestureState.dy < -swipeThreshold && !isExpandedRef.current) {
           console.log("Swipe up detected - expanding");
@@ -175,6 +193,7 @@ const SwipeableExpandableCard = ({
       },
       onPanResponderTerminate: () => {
         console.log("Pan responder terminated");
+        // Reset gesture state even if terminated
         gestureStateRef.current = { dy: 0 };
       }
     })
@@ -182,6 +201,13 @@ const SwipeableExpandableCard = ({
 
   const handleTap = () => {
     console.log("Tap handler called");
+
+    // Prevent tap action if an animation is currently running
+    if (isAnimatingRef.current) {
+      console.log("Animation in progress, ignoring tap.");
+      return;
+    }
+
     if (Math.abs(gestureStateRef.current.dy) < 10) {
       console.log("Tap detected - toggling state");
       toggleExpansion();
@@ -197,7 +223,13 @@ const SwipeableExpandableCard = ({
     }
   };
 
+  // Prevent scroll drag action if an animation is currently running
   const handleScrollBeginDrag = (event) => {
+    if (isAnimatingRef.current) {
+      console.log("Animation in progress, ignoring scroll begin drag.");
+      return;
+    }
+
     const { contentOffset } = event.nativeEvent;
     console.log(`Scroll begin drag: y=${contentOffset.y}`);
     if (contentOffset.y <= 0) {
@@ -210,6 +242,7 @@ const SwipeableExpandableCard = ({
       }
     }
   };
+
 
   const needsScrollView = getTotalContentHeight() > maxHeightForExpandableContent;
 
@@ -327,6 +360,6 @@ const styles = StyleSheet.create({
     left: -9999,
     top: -9999,
   },
-});
+},);
 
 export default SwipeableExpandableCard;
