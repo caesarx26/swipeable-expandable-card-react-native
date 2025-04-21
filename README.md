@@ -21,122 +21,132 @@ A highly interactive card component for React Native that supports both swipe ge
 ### Example
 
 ```jsx
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import ExpandableCard from 'react-native-expandable-card';
+import React from 'react';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import SwipeableExpandableCard from './SwipeableExpandableCard'; // Adjust the path
 
 const ProductCard = () => {
-  const [expanded, setExpanded] = useState(false);
-
-  // Header component (always visible)
-  const Header = () => (
-    <View style={styles.header}>
-      <Text style={styles.title}>Premium Wireless Headphones</Text>
-      <Text style={styles.price}>$199.99</Text>
-      <Text style={styles.hint}>
-        {expanded ? 'Swipe down to collapse' : 'Swipe up or tap for details'}
-      </Text>
+  const baseContent = (
+    <View style={styles.baseContainer}>
+      <Text style={styles.title}>Awesome Gadget</Text>
+      <Text style={styles.subtitle}>Tap or swipe up for details</Text>
     </View>
   );
 
-  // Expandable content
-  const Content = () => (
-    <ScrollView style={styles.content}>
-      <Text style={styles.sectionTitle}>Features</Text>
-      <Text style={styles.feature}>• 40mm dynamic drivers</Text>
-      <Text style={styles.feature}>• Active noise cancellation</Text>
-      <Text style={styles.feature}>• 30-hour battery life</Text>
-      
-      <Text style={styles.sectionTitle}>Specifications</Text>
-      <Text style={styles.spec}>Weight: 254g</Text>
-      <Text style={styles.spec}>Bluetooth: 5.0</Text>
-      <Text style={styles.spec}>Frequency response: 20Hz-20kHz</Text>
+  const expandableContent = (
+    <View style={styles.expandedContainer}>
+      <Text style={styles.heading}>Product Description</Text>
+      <Text style={styles.paragraph}>
+        This awesome gadget will change your life! It has many features and is very easy to use.
+        Read more below for detailed specifications.
+      </Text>
+      <Text style={styles.heading}>Specifications</Text>
+      <Text style={styles.listItem}>• Power: 100W</Text>
+      <Text style={styles.listItem}>• Dimensions: 10x5x2 cm</Text>
+      <Text style={styles.listItem}>• Weight: 150g</Text>
+    </View>
+  );
 
+  const bottomContent = (
+    <View style={styles.bottomContainer}>
       <TouchableOpacity style={styles.button}>
         <Text style={styles.buttonText}>Add to Cart</Text>
       </TouchableOpacity>
-    </ScrollView>
+      <TouchableOpacity style={styles.button}>
+        <Text style={styles.buttonText}>View Reviews</Text>
+      </TouchableOpacity>
+    </View>
   );
 
+  const handleExpand = () => {
+    console.log('Product card expanded');
+  };
+
+  const handleCollapse = () => {
+    console.log('Product card collapsed');
+  };
+
   return (
-    <View style={styles.container}>
-      <ExpandableCard
-        header={<Header />}
-        content={<Content />}
-        maxHeight={350}
-        onExpand={() => setExpanded(true)}
-        onCollapse={() => setExpanded(false)}
-        animationConfig={{
-          duration: 300,
-          useNativeDriver: true
-        }}
+    <View style={styles.cardWrapper}>
+      <SwipeableExpandableCard
+        baseContent={baseContent}
+        expandableContent={expandableContent}
+        bottomContent={bottomContent}
+        maxHeightForExpandableContent={200}
+        onExpansion={handleExpand}
+        onCollapse={handleCollapse}
+        rootStyling={styles.card}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  cardWrapper: {
     padding: 20,
-    backgroundColor: '#f5f5f5'
   },
-  header: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+    overflow: 'hidden', // Important for rounded corners with absolute positioning
+  },
+  baseContainer: {
+    padding: 15,
+    alignItems: 'center',
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5
+    marginBottom: 5,
   },
-  price: {
+  subtitle: {
+    fontSize: 14,
+    color: 'gray',
+  },
+  expandedContainer: {
+    padding: 15,
+    backgroundColor: '#f9f9f9',
+  },
+  heading: {
     fontSize: 16,
-    color: '#2ecc71',
-    fontWeight: '600'
-  },
-  hint: {
-    fontSize: 12,
-    color: '#95a5a6',
-    marginTop: 8,
-    fontStyle: 'italic'
-  },
-  content: {
-    padding: 20,
-    backgroundColor: '#fff'
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     marginTop: 10,
     marginBottom: 5,
-    color: '#3498db'
   },
-  feature: {
+  paragraph: {
     fontSize: 14,
-    marginLeft: 10,
-    marginBottom: 3
+    lineHeight: 20,
+    marginBottom: 10,
   },
-  spec: {
+  listItem: {
     fontSize: 14,
-    marginLeft: 10,
-    marginBottom: 3,
-    color: '#7f8c8d'
+    marginLeft: 15,
+    marginVertical: 3,
+  },
+  bottomContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 15,
+    backgroundColor: '#eee',
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
   },
   button: {
-    marginTop: 20,
-    backgroundColor: '#3498db',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center'
+    backgroundColor: '#007bff',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
   },
   buttonText: {
-    color: '#fff',
-    fontWeight: 'bold'
-  }
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });
-
 export default ProductCard;
 ```jsx
