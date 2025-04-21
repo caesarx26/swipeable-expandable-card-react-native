@@ -18,6 +18,8 @@ A highly interactive card component for React Native that supports both swipe ge
 - **🛠️ Component Composition**: Use any React Native components as content
 - **🔧 Configurable Transitions**: Adjust animation timing and easing
 
+### Example
+
 ```jsx
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
