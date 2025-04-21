@@ -22,7 +22,9 @@ const SwipeableExpandableCard = ({
   const [bottomHeight, setBottomHeight] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [contentMeasured, setContentMeasured] = useState(false);
+  const [overscrollDetected, setOverscrollDetected] = useState(false);
   const isExpandedRef = useRef(false);
+  const scrollViewRef = useRef(null);
   const heightAnim = useRef(new Animated.Value(0)).current;
 
   const swipeThreshold = 30;
@@ -41,6 +43,10 @@ const SwipeableExpandableCard = ({
   const setExpandedState = (value) => {
     isExpandedRef.current = value;
     setIsExpanded(value);
+    // Reset overscroll state when collapsing
+    if (!value) {
+      setOverscrollDetected(false);
+    }
   };
 
   useEffect(() => {
@@ -82,6 +88,28 @@ const SwipeableExpandableCard = ({
   const handleTap = () => {
     if (Math.abs(gestureY.current) < 10) {
       setExpandedState(!isExpandedRef.current);
+    }
+  };
+
+  const handleScroll = (event) => {
+    const { contentOffset } = event.nativeEvent;
+    // Reset overscroll detection if user scrolls down
+    if (contentOffset.y > 0) {
+      setOverscrollDetected(false);
+    }
+  };
+
+  const handleScrollBeginDrag = (event) => {
+    const { contentOffset } = event.nativeEvent;
+    // If we're at the top and trying to scroll up (overscroll)
+    if (contentOffset.y <= 0) {
+      if (overscrollDetected) {
+        // Second overscroll attempt, collapse the content
+        setExpandedState(false);
+      } else {
+        // First overscroll attempt, set the flag
+        setOverscrollDetected(true);
+      }
     }
   };
 
@@ -137,10 +165,14 @@ const SwipeableExpandableCard = ({
       >
         {needsScrollView ? (
           <ScrollView
-            bounces={false}
+            ref={scrollViewRef}
+            bounces={true} // Enable bounces for overscroll detection
             showsVerticalScrollIndicator={true}
             style={{ maxHeight: maxHeightForExpandableContent }}
             contentContainerStyle={{ paddingBottom: 10 }}
+            onScroll={handleScroll}
+            onScrollBeginDrag={handleScrollBeginDrag}
+            scrollEventThrottle={16} // Ensure smooth event handling
           >
             {expandableContent}
           </ScrollView>
