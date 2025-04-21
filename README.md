@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 5,
-    overflow: 'hidden', // Important for rounded corners with absolute positioning
+    overflow: 'hidden',
   },
   baseContainer: {
     padding: 15,
