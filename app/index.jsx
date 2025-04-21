@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  SafeAreaView,
   StyleSheet,
   View,
   Text,
@@ -154,11 +153,13 @@ const App = () => {
       <ExpandableCard
         rootStyling={styles.card}
         maxHeightForExpandableContent={300} // Set a height that will require scrolling
+        showVerticalScrollIndicator={false}
         baseContent={<SimpleBaseContent />}
         expandableContent={<LargeExpandableContent />}
         bottomContent={<ActionButtons />}
         onExpansion={handleExpansion}
         onCollapse={handleCollapse}
+        animationDuration={300}
       />
 
 
@@ -167,6 +168,17 @@ const App = () => {
 };
 
 const styles = StyleSheet.create({
+  card: {
+    position: 'absolute',
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    bottom: 0,
+    zIndex: 20
+  },
+  expandableContent: {
+    padding: 16,
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -185,11 +197,6 @@ const styles = StyleSheet.create({
   cardContainer: {
     padding: 16,
     flex: 1,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    bottom: 0
   },
   baseContent: {
     padding: 16,
@@ -221,9 +228,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     marginBottom: 12,
-  },
-  expandableContent: {
-    padding: 16,
   },
   sectionTitle: {
     fontSize: 16,

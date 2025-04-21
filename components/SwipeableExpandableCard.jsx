@@ -18,17 +18,18 @@ const SwipeableExpandableCard = ({
   onExpansion,
   onCollapse,
   animationDuration = 300,
+  showVerticalScrollIndicator = true,
 }) => {
   const [baseHeight, setBaseHeight] = useState(0);
   const [expandableHeight, setExpandableHeight] = useState(0);
   const [bottomHeight, setBottomHeight] = useState(0);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false); // Still used for logic, but not direct rendering of bottom content
   const [contentMeasured, setContentMeasured] = useState(false);
-  const [overscrollDetected, setOverscrollDetected] = useState(false);
   const [pendingAnimation, setPendingAnimation] = useState(null);
+  const [showBottomContent, setShowBottomContent] = useState(false); // State to control bottom content visibility
 
   const isExpandedRef = useRef(false);
-  const isAnimatingRef = useRef(false); // This is the key ref
+  const isAnimatingRef = useRef(false);
   const scrollViewRef = useRef(null);
   const heightAnim = useRef(new Animated.Value(0)).current;
   const animationRef = useRef(null);
@@ -57,20 +58,19 @@ const SwipeableExpandableCard = ({
   const runAnimation = (toExpanded) => {
     console.log(`Attempting to run animation to ${toExpanded ? 'expand' : 'collapse'}`);
 
-    // Check if an animation is already in progress
     if (isAnimatingRef.current) {
       console.log("Animation already in progress, skipping new animation request");
-      return; // Do not start a new animation if one is running
+      return;
     }
 
     callbackTriggeredRef.current = false;
 
     if (animationRef.current) {
       console.log("Stopping previous animation (shouldn't happen if isAnimatingRef is checked)");
-      animationRef.current.stop(); // Still good practice to stop in case
+      animationRef.current.stop();
     }
 
-    isAnimatingRef.current = true; // Set the flag when animation starts
+    isAnimatingRef.current = true;
 
     const totalContentHeight = getTotalContentHeight();
     const targetHeight = toExpanded
@@ -78,6 +78,11 @@ const SwipeableExpandableCard = ({
       : 0;
 
     console.log(`Starting animation from ${heightAnim._value} to ${targetHeight}, totalHeight=${totalContentHeight}`);
+
+    // If expanding, show bottom content at the start of the animation
+    if (toExpanded) {
+      setShowBottomContent(true);
+    }
 
     animationRef.current = Animated.timing(heightAnim, {
       toValue: targetHeight,
@@ -87,10 +92,21 @@ const SwipeableExpandableCard = ({
 
     animationRef.current.start((finished) => {
       console.log(`Animation ${finished ? 'completed' : 'interrupted'}`);
-      isAnimatingRef.current = false; // Unset the flag when animation finishes or is interrupted
+      isAnimatingRef.current = false;
+
+      // If collapsing and animation finished, hide bottom content
+      if (!toExpanded && finished) {
+        setShowBottomContent(false);
+      }
 
       if (finished && !callbackTriggeredRef.current) {
         callbackTriggeredRef.current = true;
+        // Update isExpanded state ONLY after the animation finishes if collapsing
+        // For expanding, setIsExpanded to true here or rely on the initial state
+        // update in toggleExpansion, depending on preferred behavior.
+        // Let's set it on completion for both for consistency.
+        setIsExpanded(toExpanded);
+
         if (toExpanded && onExpansion) {
           console.log("Triggering onExpansion callback");
           onExpansion();
@@ -98,14 +114,30 @@ const SwipeableExpandableCard = ({
           console.log("Triggering onCollapse callback");
           onCollapse();
         }
+      } else if (!finished && !toExpanded) {
+        // If collapsing animation is interrupted, hide bottom content
+        console.log("Collapse animation interrupted, hiding bottom content.");
+        setShowBottomContent(false);
+        setIsExpanded(false); // Also set state to false on interruption
+      } else if (!finished && toExpanded) {
+        // If expanding animation is interrupted, and height is not full, hide bottom content
+        if (heightAnim._value < targetHeight) {
+          console.log("Expand animation interrupted before completion, hiding bottom content.");
+          setShowBottomContent(false);
+          setIsExpanded(false); // Set state to false on interruption
+        } else {
+          // If animation interrupted near the end, might want to keep it shown
+          console.log("Expand animation interrupted near completion, keeping bottom content shown.");
+          setIsExpanded(true); // Set state to true on interruption if near end
+        }
       }
     });
   };
+  const overscrollDetectedRef = useRef(false);
 
   const toggleExpansion = (shouldExpand) => {
     console.log(`toggleExpansion called with shouldExpand=${shouldExpand}`);
 
-    // Prevent toggling if an animation is currently running
     if (isAnimatingRef.current) {
       console.log("Animation in progress, ignoring toggle request.");
       return;
@@ -115,11 +147,16 @@ const SwipeableExpandableCard = ({
 
     console.log(`Current expanded state: ${isExpandedRef.current}, New state: ${newExpandedState}`);
 
+    // Update the ref immediately for gesture logic
     isExpandedRef.current = newExpandedState;
-    setIsExpanded(newExpandedState);
+
+    // Do NOT set the isExpanded state immediately here for collapsing (handled in animation callback)
+    // For expanding, setting it here is fine, or you can do it in the animation callback too.
+    // Let's set it via the callback for both for better synchronization with the animation.
+    // setIsExpanded(newExpandedState);
 
     if (!newExpandedState) {
-      setOverscrollDetected(false);
+      overscrollDetectedRef.current = false;
     }
 
     console.log("Setting pending animation state:", newExpandedState);
@@ -139,10 +176,8 @@ const SwipeableExpandableCard = ({
 
   const panResponder = useRef(
     PanResponder.create({
-      // Do not set responder if animating
       onStartShouldSetPanResponder: () => !isAnimatingRef.current,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Do not set responder if animating
         if (isAnimatingRef.current) {
           return false;
         }
@@ -158,7 +193,6 @@ const SwipeableExpandableCard = ({
         gestureStateRef.current = { dy: 0 };
       },
       onPanResponderMove: (_, gestureState) => {
-        // If animation started during the move, we should stop processing
         if (isAnimatingRef.current) {
           return;
         }
@@ -171,10 +205,9 @@ const SwipeableExpandableCard = ({
       onPanResponderRelease: (_, gestureState) => {
         console.log(`Pan released: dy=${gestureState.dy}, threshold=${swipeThreshold}`);
 
-        // Only process release if not animating
         if (isAnimatingRef.current) {
           console.log("Animation in progress, ignoring pan release.");
-          gestureStateRef.current = { dy: 0 }; // Reset gesture state
+          gestureStateRef.current = { dy: 0 };
           return;
         }
 
@@ -193,7 +226,6 @@ const SwipeableExpandableCard = ({
       },
       onPanResponderTerminate: () => {
         console.log("Pan responder terminated");
-        // Reset gesture state even if terminated
         gestureStateRef.current = { dy: 0 };
       }
     })
@@ -202,7 +234,6 @@ const SwipeableExpandableCard = ({
   const handleTap = () => {
     console.log("Tap handler called");
 
-    // Prevent tap action if an animation is currently running
     if (isAnimatingRef.current) {
       console.log("Animation in progress, ignoring tap.");
       return;
@@ -216,33 +247,48 @@ const SwipeableExpandableCard = ({
     }
   };
 
+
+  const lastYRef = useRef(0);
+
   const handleScroll = (event) => {
-    const { contentOffset } = event.nativeEvent;
-    if (contentOffset.y > 0) {
-      setOverscrollDetected(false);
+    const currentY = event.nativeEvent.contentOffset.y;
+
+    // Update scroll direction
+    if (currentY > lastYRef.current) {
+      // Scrolling down
+      console.log("Scrolling down — reset overscroll flag");
+      overscrollDetectedRef.current = false;
     }
+
+    lastYRef.current = currentY;
   };
 
-  // Prevent scroll drag action if an animation is currently running
-  const handleScrollBeginDrag = (event) => {
-    if (isAnimatingRef.current) {
-      console.log("Animation in progress, ignoring scroll begin drag.");
+  const handleScrollEndDrag = (event) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const lastY = lastYRef.current;
+
+    // Detect if user is starting to scroll down
+    if (offsetY > lastY) {
+      console.log("Initial scroll direction is down — ignoring");
+      overscrollDetectedRef.current = false;
       return;
     }
 
-    const { contentOffset } = event.nativeEvent;
-    console.log(`Scroll begin drag: y=${contentOffset.y}`);
-    if (contentOffset.y <= 0) {
-      if (overscrollDetected) {
-        console.log("Second overscroll detected - collapsing");
+    if (offsetY <= 0) {
+      if (overscrollDetectedRef.current) {
+        console.log("Second upward drag at top detected — TRIGGER COLLAPSE");
         toggleExpansion(false);
+        overscrollDetectedRef.current = false;
       } else {
-        console.log("First overscroll detected - setting flag");
-        setOverscrollDetected(true);
+        console.log("First upward drag at top — set flag");
+        overscrollDetectedRef.current = true;
       }
     }
   };
 
+
+  // Use showBottomContent state to control render
+  const renderBottomContent = bottomContent && showBottomContent;
 
   const needsScrollView = getTotalContentHeight() > maxHeightForExpandableContent;
 
@@ -315,32 +361,40 @@ const SwipeableExpandableCard = ({
 
       {/* Expandable Content Container */}
       <Animated.View
+
         style={{
+          // This height is controlled by the animation
           height: heightAnim,
           overflow: 'hidden',
           opacity: contentMeasured ? 1 : 0,
         }}
       >
-        {needsScrollView ? (
-          <ScrollView
-            ref={scrollViewRef}
-            bounces={true}
-            showsVerticalScrollIndicator={true}
-            style={{ maxHeight: maxHeightForExpandableContent }}
-            contentContainerStyle={{ paddingBottom: 10 }}
-            onScroll={handleScroll}
-            onScrollBeginDrag={handleScrollBeginDrag}
-            scrollEventThrottle={16}
-          >
-            {expandableContent}
-          </ScrollView>
-        ) : (
-          <View>{expandableContent}</View>
-        )}
+        <TouchableWithoutFeedback>
+
+
+          {needsScrollView ? (
+            <ScrollView
+              ref={scrollViewRef}
+              bounces={true}
+              showsVerticalScrollIndicator={showVerticalScrollIndicator}
+              style={{ maxHeight: maxHeightForExpandableContent }}
+              contentContainerStyle={{ paddingBottom: 10 }}
+              onScroll={handleScroll}
+              onScrollEndDrag={handleScrollEndDrag}
+              scrollEventThrottle={16}
+            >
+              {expandableContent}
+            </ScrollView>
+          ) : (
+            <TouchableWithoutFeedback onPress={handleTap}>
+              <View>{expandableContent}</View>
+            </TouchableWithoutFeedback>
+          )}
+        </TouchableWithoutFeedback>
       </Animated.View>
 
       {/* Bottom Section */}
-      {isExpanded && bottomContent && (
+      {renderBottomContent && (
         <View style={{ opacity: contentMeasured ? 1 : 0 }}>
           {bottomContent}
         </View>
@@ -360,6 +414,6 @@ const styles = StyleSheet.create({
     left: -9999,
     top: -9999,
   },
-},);
+});
 
 export default SwipeableExpandableCard;
