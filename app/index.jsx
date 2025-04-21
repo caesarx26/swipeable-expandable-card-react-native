@@ -137,15 +137,15 @@ const App = () => {
 
   // Handle expansion and collapse events
   const handleExpansion = () => {
-    console.log('Card expanded');
+    console.log('\n\nCard expanded');
   };
 
   const handleCollapse = () => {
-    console.log('Card collapsed');
+    console.log('\n\nCard collapsed');
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>This Product</Text>
@@ -153,7 +153,7 @@ const App = () => {
 
       <ExpandableCard
         rootStyling={styles.card}
-        maxHeightForExpandableContent={400} // Set a height that will require scrolling
+        maxHeightForExpandableContent={300} // Set a height that will require scrolling
         baseContent={<SimpleBaseContent />}
         expandableContent={<LargeExpandableContent />}
         bottomContent={<ActionButtons />}
@@ -161,12 +161,8 @@ const App = () => {
         onCollapse={handleCollapse}
       />
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Try swiping up on the card to see more details, or tap to expand/collapse.
-        </Text>
-      </View>
-    </SafeAreaView>
+
+    </View>
   );
 };
 
@@ -193,6 +189,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
+    bottom: 0
   },
   baseContent: {
     padding: 16,
