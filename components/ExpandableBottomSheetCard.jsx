@@ -147,39 +147,35 @@ const BottomSheetCard = ({
   const headerPanHandlers = panResponder.panHandlers;
 
   return (
-    <View>
-      <Animated.View
+    <Animated.View
+      style={[
+        sheetStyle,
+        {
+          transform: [{ translateY }],
+          opacity: isReady ? 1 : 0
+        }
+      ]}
+    >
+      {/* Render the custom header content with pan handlers */}
+      {React.cloneElement(headerContent, { ...headerPanHandlers })}
+
+      <ScrollView
+        ref={scrollViewRef}
         style={[
-          { bottom: 0, position: 'absolute', left: 0, right: 0 },
-          sheetStyle,
-          {
-            transform: [{ translateY }],
-            opacity: isReady ? 1 : 0
-          }
+          scrollContainerStyle,
+          { maxHeight: scrollMaxHeight }
         ]}
+        contentContainerStyle={[
+          contentContainerStyle
+        ]}
+        showsVerticalScrollIndicator={showVerticalScrollIndicator}
+        scrollEventThrottle={16}
+        bounces={false}
+        onScrollBeginDrag={() => console.log('Scroll started inside content')}
       >
-        {/* Render the custom header content with pan handlers */}
-        {React.cloneElement(headerContent, { ...headerPanHandlers })}
-
-        <ScrollView
-          ref={scrollViewRef}
-          style={[
-            scrollContainerStyle,
-            { maxHeight: scrollMaxHeight }
-          ]}
-          contentContainerStyle={[
-            contentContainerStyle
-          ]}
-          showsVerticalScrollIndicator={showVerticalScrollIndicator}
-          scrollEventThrottle={16}
-          bounces={false}
-          onScrollBeginDrag={() => console.log('Scroll started inside content')}
-        >
-          {children}
-        </ScrollView>
-      </Animated.View>
-    </View>
-
+        {children}
+      </ScrollView>
+    </Animated.View>
   );
 };
 
@@ -196,7 +192,6 @@ const ExpandableBottomSheetCard = ({
   showVerticalScrollIndicator = true,
   footerContent,
 }) => {
-
   const [headerHeight, setHeaderHeight] = useState(null);
   const [contentHeight, setContentHeight] = useState(null);
   const [footerHeight, setFooterHeight] = useState(null);
@@ -229,22 +224,34 @@ const ExpandableBottomSheetCard = ({
       </View>
     );
   }
+
   const calculatedFooterHeight = footerContent ? footerHeight : 0;
+  const calculatedMinHeight = headerHeight + calculatedFooterHeight;
   console.log("calculatedFooterHeight", calculatedFooterHeight);
   const calculatedMaxHeightForScrollView = scrollMaxHeight ?? (SCREEN_HEIGHT - STATUS_BAR_HEIGHT - calculatedFooterHeight - 30);
   console.log(`(${SCREEN_HEIGHT}, ${STATUS_BAR_HEIGHT}, ${calculatedFooterHeight} )calculatedMaxHeightForScrollView: `, calculatedMaxHeightForScrollView);
   return (
-    <BottomSheetCard
-      initialPosition={initialPosition}
-      sheetStyle={sheetStyle}
-      scrollContainerStyle={scrollContainerStyle}
-      scrollMaxHeight={calculatedMaxHeightForScrollView}
-      contentContainerStyle={contentContainerStyle}
-      headerContent={headerContent}
-      minHeight={headerHeight}
-      showVerticalScrollIndicator={showVerticalScrollIndicator}>
-      {children}
-    </BottomSheetCard>
+    <View style={[{ position: 'absolute', bottom: 0, left: 0, right: 0, }]}>
+      <BottomSheetCard
+        initialPosition={initialPosition}
+        sheetStyle={sheetStyle}
+        scrollContainerStyle={scrollContainerStyle}
+        scrollMaxHeight={calculatedMaxHeightForScrollView}
+        contentContainerStyle={contentContainerStyle}
+        headerContent={headerContent}
+        minHeight={calculatedMinHeight}
+        showVerticalScrollIndicator={showVerticalScrollIndicator}>
+        {children}
+      </BottomSheetCard>
+
+      {footerContent && (
+        <View style={{ zIndex: sheetStyle?.zIndex ?? 2 }}>
+          {footerContent}
+        </View>
+      )}
+
+    </View>
+
   );
 };
 
