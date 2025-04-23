@@ -1,6 +1,6 @@
 // app/index.js
 import React from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet, Pressable } from 'react-native';
 import ExpandableBottomSheetCard from '../components/ExpandableBottomSheetCard'; // adjust path if needed
 
 const IndexPage = () => {
@@ -26,6 +26,14 @@ const IndexPage = () => {
     </View>
   );
 
+  const onExpansion = () => {
+    console.log('Expanded');
+  };
+
+  const onCollapse = () => {
+    console.log('Collapsed');
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.pageBackground}>
@@ -37,6 +45,8 @@ const IndexPage = () => {
         contentContainerStyle={{}}
         scrollContainerStyle={{ backgroundColor: '#fff' }}
         sheetStyle={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, zIndex: 50 }}
+        onExpansion={onExpansion}
+        onCollapse={onCollapse}
       >
         {content}
       </ExpandableBottomSheetCard>

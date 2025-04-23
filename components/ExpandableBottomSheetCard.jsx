@@ -15,6 +15,8 @@ const BottomSheetCard = ({
   scrollMaxHeight = DEFAULT_SCROLL_MAX_HEIGHT,
   contentContainerStyle,
   showVerticalScrollIndicator = true,
+  onCollapse,
+  onExpansion,
 }) => {
   const maxHeight = minHeight + scrollMaxHeight;
   const translateY = useRef(new Animated.Value(0)).current;
@@ -57,6 +59,19 @@ const BottomSheetCard = ({
     const targetPosition = expanded
       ? maxHeight - maxHeight  // Fully expanded
       : maxHeight - minHeight; // Collapsed
+
+    // call onCollapse or onExpansion
+    if (!expanded) {
+      onCollapse();
+    } else {
+      onExpansion();
+    }
+
+    // reset states
+    setHasScrolledDown(false);
+    setTopScrollUpCount(0);
+    lastScrollY.current = 0;
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
 
     Animated.timing(translateY, {
       toValue: targetPosition,
@@ -148,6 +163,21 @@ const BottomSheetCard = ({
         }).start(() => {
           lastOffsetY.current = finalY;
 
+          // reset states
+          setHasScrolledDown(false);
+          setTopScrollUpCount(0);
+          lastScrollY.current = 0;
+          scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+          console.log("reset states");
+
+          // Log expanded or collapsed
+          if (finalY === minTranslateY) {
+            onExpansion();
+          } else if (finalY === maxTranslateY) {
+            onCollapse();
+          }
+
+
           // Reset gesture in progress flag after animation completes
           setTimeout(() => {
             isGestureInProgress.current = false;
@@ -160,6 +190,66 @@ const BottomSheetCard = ({
       }
     })
   ).current;
+
+  // Scroll tracking state
+  const [hasScrolledDown, setHasScrolledDown] = useState(false);
+  const [topScrollUpCount, setTopScrollUpCount] = useState(0);
+  const lastScrollY = useRef(0);
+
+  const handleEndDrag = (event) => {
+    if (!isFullyExpanded) return;
+
+
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const isAtTop = offsetY <= 0;
+
+    // check if user scrolled bottom and set hasScrolledDown flag
+    if (!hasScrolledDown && offsetY > lastScrollY.current) {
+      setHasScrolledDown(true);
+      lastScrollY.current = offsetY;
+      setTopScrollUpCount(0);
+      return;
+    }
+
+    if (hasScrolledDown && topScrollUpCount >= 1) {
+      animateToPosition(false);
+      setHasScrolledDown(false);
+      setTopScrollUpCount(0);
+      lastScrollY.current = 0;
+    }
+
+    if (hasScrolledDown && isAtTop) {
+      setTopScrollUpCount(topScrollUpCount + 1);
+      lastScrollY.current = offsetY;
+      return;
+    }
+
+    console.log("isAtTop onEndDrag", isAtTop);
+    console.log("hasScrolledDown onEndDrag", hasScrolledDown);
+
+    if (isAtTop && !hasScrolledDown) {
+      console.log("collapsing from onEndDrag");
+      animateToPosition(false);
+      setHasScrolledDown(false);
+      setTopScrollUpCount(0);
+      lastScrollY.current = 0;
+    }
+
+    lastScrollY.current = offsetY;
+  };
+
+  const handleScroll = (event) => {
+    if (!isFullyExpanded) return;
+    const offsetY = event.nativeEvent.contentOffset.y;
+
+    // check if user scrolled bottom and set hasScrolledDown flag
+    if (!hasScrolledDown && offsetY > lastScrollY.current) {
+      setHasScrolledDown(true);
+      setTopScrollUpCount(0);
+      lastScrollY.current = offsetY;
+    }
+
+  }
 
   // Create a touchable wrapper for the header
   const HeaderWithTouchable = () => {
@@ -199,6 +289,8 @@ const BottomSheetCard = ({
         showsVerticalScrollIndicator={showVerticalScrollIndicator}
         scrollEventThrottle={16}
         bounces={false}
+        onScrollEndDrag={handleEndDrag}
+        onScroll={handleScroll}
       >
         {children}
       </ScrollView>
@@ -216,6 +308,8 @@ const ExpandableBottomSheetCard = ({
   contentContainerStyle,
   showVerticalScrollIndicator = true,
   footerContent,
+  onExpansion,
+  onCollapse
 }) => {
   const [headerHeight, setHeaderHeight] = useState(null);
   const [contentHeight, setContentHeight] = useState(null);
@@ -265,7 +359,10 @@ const ExpandableBottomSheetCard = ({
         contentContainerStyle={contentContainerStyle}
         headerContent={headerContent}
         minHeight={calculatedMinHeight}
-        showVerticalScrollIndicator={showVerticalScrollIndicator}>
+        showVerticalScrollIndicator={showVerticalScrollIndicator}
+        onCollapse={onCollapse}
+        onExpansion={onExpansion}
+      >
         {children}
       </BottomSheetCard>
 
