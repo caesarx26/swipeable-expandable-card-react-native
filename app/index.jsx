@@ -35,7 +35,6 @@ const IndexPage = () => {
         initialPosition="collapsed"
         headerContent={header}
         contentContainerStyle={{}}
-        footerContent={footer}
         scrollContainerStyle={{ backgroundColor: '#fff' }}
         sheetStyle={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, zIndex: 50 }}
       >

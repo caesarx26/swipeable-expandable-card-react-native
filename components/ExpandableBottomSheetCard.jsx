@@ -39,12 +39,7 @@ const BottomSheetCard = ({
     translateY.setValue(initialOffset);
     lastOffsetY.current = initialOffset;
 
-    // Phase 2: After a short delay to ensure layout is ready, make visible
-    const timer = setTimeout(() => {
-      setIsReady(true);
-    }, 100);
-
-    return () => clearTimeout(timer);
+    setIsReady(true);
   }, []);
 
   // Add value listener to track expanded state
