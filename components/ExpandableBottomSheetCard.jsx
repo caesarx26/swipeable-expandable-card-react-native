@@ -1,13 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, ScrollView, Dimensions, Animated, PanResponder, StatusBar, StyleSheet } from 'react-native';
+import { View, ScrollView, Dimensions, Animated, PanResponder, StatusBar, Easing, TouchableWithoutFeedback } from 'react-native';
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const STATUS_BAR_HEIGHT = StatusBar.currentHeight || 0;
 const DEFAULT_SCROLL_MAX_HEIGHT = SCREEN_HEIGHT * 0.9; // Default max height for scrollable content
-const ANIMATION_CONFIG = {
-  tension: 20,
-  friction: 4,
-  useNativeDriver: false
-};
+
 
 const BottomSheetCard = ({
   minHeight = 100,
@@ -20,15 +16,15 @@ const BottomSheetCard = ({
   contentContainerStyle,
   showVerticalScrollIndicator = true,
 }) => {
-  console.log("full height window:", SCREEN_HEIGHT);;
-  console.log("min height passed", minHeight);
-  console.log("scroll max height passed: ", scrollMaxHeight, "and default scroll max height", SCREEN_HEIGHT * 0.9);
   const maxHeight = minHeight + scrollMaxHeight;
   const translateY = useRef(new Animated.Value(0)).current;
   const lastOffsetY = useRef(0);
   const [isReady, setIsReady] = useState(false);
-  const [isFullyExpanded, setIsFullyExpanded] = useState(false);
+  const [isFullyExpanded, setIsFullyExpanded] = useState(initialPosition !== 'collapsed');
   const scrollViewRef = useRef(null);
+
+  // Track if a gesture is in progress to prevent gesture conflicts
+  const isGestureInProgress = useRef(false);
 
   // Calculate initial position
   const getInitialOffset = () =>
@@ -43,108 +39,143 @@ const BottomSheetCard = ({
     translateY.setValue(initialOffset);
     lastOffsetY.current = initialOffset;
 
-    console.log('Initial offset set:', initialOffset);
-    console.log('Initial height would be:', maxHeight - initialOffset);
-
     // Phase 2: After a short delay to ensure layout is ready, make visible
     const timer = setTimeout(() => {
       setIsReady(true);
-      console.log('Sheet ready to display');
     }, 100);
 
     return () => clearTimeout(timer);
   }, []);
 
-  // Add value listener to log translateY changes and track expanded state
+  // Add value listener to track expanded state
   useEffect(() => {
     const listener = translateY.addListener(({ value }) => {
-      const currentHeight = maxHeight - value;
-      console.log('Current sheet height:', currentHeight);
-
-      // Update fully expanded state
-      setIsFullyExpanded(Math.abs(value - (maxHeight - maxHeight)) < 5);
+      // Update fully expanded state with a tighter threshold
+      setIsFullyExpanded(Math.abs(value - (maxHeight - maxHeight)) < 2);
     });
 
     return () => translateY.removeListener(listener);
   }, []);
 
+  // Function to animate the bottom sheet to a specific position
+  const animateToPosition = (expanded) => {
+    const targetPosition = expanded
+      ? maxHeight - maxHeight  // Fully expanded
+      : maxHeight - minHeight; // Collapsed
+
+    Animated.timing(translateY, {
+      toValue: targetPosition,
+      duration: 250,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+      useNativeDriver: true
+    }).start(() => {
+      lastOffsetY.current = targetPosition;
+    });
+  };
+
+  // Toggle expansion state when header is tapped
+  const handleHeaderTap = () => {
+    // Don't handle taps if a gesture is in progress
+    if (isGestureInProgress.current) return;
+
+    // Toggle between expanded and collapsed
+    animateToPosition(!isFullyExpanded);
+  };
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // If fully expanded and scrolling down (negative vy), let the ScrollView handle it
+        // If fully expanded and scrolling down, let the ScrollView handle it
         if (isFullyExpanded && scrollViewRef.current && gestureState.dy > 0) {
           // Check if ScrollView is at the top
           const scrollViewHandlesIt = scrollViewRef.current.contentOffset?.y > 0;
           return !scrollViewHandlesIt;
         }
 
-        // More sensitive dragging - lower threshold to activate
-        return Math.abs(gestureState.dy) > 2;
+        // Even more sensitive dragging
+        return Math.abs(gestureState.dy) > 1;
       },
       onPanResponderGrant: () => {
+        // Mark that a gesture is in progress
+        isGestureInProgress.current = true;
+
         // Stop any ongoing animations to ensure smooth transition to dragging
-        translateY.stopAnimation();
-        console.log('Pan responder grant - drag started');
+        translateY.stopAnimation(value => {
+          lastOffsetY.current = value;
+        });
       },
       onPanResponderMove: (_, gestureState) => {
         const minTranslateY = maxHeight - maxHeight;
         const maxTranslateY = maxHeight - minHeight;
         const newY = lastOffsetY.current + gestureState.dy;
 
-        // Direct mapping without resistance within bounds for more responsive dragging
+        // Improved direct mapping with minimal resistance for smoother feel
         if (newY >= minTranslateY && newY <= maxTranslateY) {
+          // Direct value setting for immediate response
           translateY.setValue(newY);
         } else if (newY < minTranslateY) {
-          // Minimal resistance when pulling beyond max height
+          // Very slight resistance when pulling beyond max height
           const overshoot = minTranslateY - newY;
-          translateY.setValue(minTranslateY - (overshoot * 0.2));
+          translateY.setValue(minTranslateY - (overshoot * 0.1));
         } else {
-          // Minimal resistance when pushing below min height
+          // Very slight resistance when pushing below min height
           const overshoot = newY - maxTranslateY;
-          translateY.setValue(maxTranslateY + (overshoot * 0.2));
+          translateY.setValue(maxTranslateY + (overshoot * 0.1));
         }
       },
       onPanResponderRelease: (_, gestureState) => {
-        console.log('Pan responder release - drag ended');
         const minTranslateY = maxHeight - maxHeight;
         const maxTranslateY = maxHeight - minHeight;
         const currentY = translateY._value;
 
-        // More responsive movement detection - lower velocity threshold
+        // More sensitive velocity detection
         let finalY;
-        if (Math.abs(gestureState.vy) > 0.2) {
-          // Direction based on velocity for more natural feel
+        if (Math.abs(gestureState.vy) > 0.1) {
+          // Direction based on velocity with a lower threshold
           finalY = gestureState.vy > 0 ? maxTranslateY : minTranslateY;
-          console.log('Flick detected, going to:', finalY === minTranslateY ? 'expanded' : 'collapsed');
         } else {
-          // Position-based snapping with closer midpoint to bottom for more natural feel
-          const snapThreshold = minTranslateY + ((maxTranslateY - minTranslateY) * 0.4);
+          // Position-based snapping with better midpoint calculation
+          const snapRatio = 0.5; // Equal midpoint for more predictable behavior
+          const snapThreshold = minTranslateY + ((maxTranslateY - minTranslateY) * snapRatio);
           finalY = currentY < snapThreshold ? minTranslateY : maxTranslateY;
-          console.log('Drag detected, snapping to:', finalY === minTranslateY ? 'expanded' : 'collapsed');
         }
 
         // Ensure we're within bounds
         finalY = Math.max(minTranslateY, Math.min(finalY, maxTranslateY));
 
-        console.log('Animation starting - from:', currentY, 'to:', finalY);
-
-        Animated.spring(translateY, {
+        // Use timing instead of spring for more controlled animation
+        Animated.timing(translateY, {
           toValue: finalY,
-          ...ANIMATION_CONFIG,
-          // Faster spring for more responsive feel
-          tension: 50,
-          friction: 7,
+          duration: 250, // Shorter duration for quicker feel
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1), // Custom easing for smooth motion
+          useNativeDriver: true
         }).start(() => {
           lastOffsetY.current = finalY;
-          console.log('Animation completed - final height:', maxHeight - finalY);
+
+          // Reset gesture in progress flag after animation completes
+          setTimeout(() => {
+            isGestureInProgress.current = false;
+          }, 100);
         });
+      },
+      onPanResponderTerminate: () => {
+        // Reset gesture in progress flag
+        isGestureInProgress.current = false;
       }
     })
   ).current;
 
-  // Handle header drag area specifically for better touch response
-  const headerPanHandlers = panResponder.panHandlers;
+  // Create a touchable wrapper for the header
+  const HeaderWithTouchable = () => {
+    return (
+      <TouchableWithoutFeedback onPress={handleHeaderTap}>
+        <View>
+          {headerContent}
+        </View>
+      </TouchableWithoutFeedback>
+    );
+  };
 
   return (
     <Animated.View
@@ -156,8 +187,10 @@ const BottomSheetCard = ({
         }
       ]}
     >
-      {/* Render the custom header content with pan handlers */}
-      {React.cloneElement(headerContent, { ...headerPanHandlers })}
+      {/* Render header with touchable and pan responder */}
+      <View {...panResponder.panHandlers}>
+        <HeaderWithTouchable />
+      </View>
 
       <ScrollView
         ref={scrollViewRef}
@@ -171,15 +204,12 @@ const BottomSheetCard = ({
         showsVerticalScrollIndicator={showVerticalScrollIndicator}
         scrollEventThrottle={16}
         bounces={false}
-        onScrollBeginDrag={() => console.log('Scroll started inside content')}
       >
         {children}
       </ScrollView>
     </Animated.View>
   );
 };
-
-
 
 const ExpandableBottomSheetCard = ({
   initialPosition = 'collapsed',
