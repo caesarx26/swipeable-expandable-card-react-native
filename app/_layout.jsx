@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
     borderRadius: 20,
     padding: 10,
-    zIndex: 2,
+    zIndex: 10,
   },
   pageTitle: {
     fontSize: 20,
