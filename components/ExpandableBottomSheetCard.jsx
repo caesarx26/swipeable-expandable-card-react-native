@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, ScrollView, Dimensions, Animated, PanResponder, StatusBar, Easing, TouchableWithoutFeedback } from 'react-native';
+import { View, ScrollView, Dimensions, Animated, PanResponder, Easing, TouchableWithoutFeedback, Platform } from 'react-native';
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-const STATUS_BAR_HEIGHT = StatusBar.currentHeight || 0;
+const SCREEN_WIDTH = Dimensions.get('window').width;
 const DEFAULT_SCROLL_MAX_HEIGHT = SCREEN_HEIGHT * 0.9; // Default max height for scrollable content
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
 const BottomSheetCard = ({
@@ -268,7 +269,7 @@ const BottomSheetCard = ({
         sheetStyle,
         {
           transform: [{ translateY }],
-          opacity: isReady ? 1 : 0
+          opacity: isReady ? 1 : 0,
         }
       ]}
     >
@@ -279,9 +280,10 @@ const BottomSheetCard = ({
 
       <ScrollView
         ref={scrollViewRef}
+
         style={[
+          { maxHeight: scrollMaxHeight },
           scrollContainerStyle,
-          { maxHeight: scrollMaxHeight }
         ]}
         contentContainerStyle={[
           contentContainerStyle
@@ -292,9 +294,11 @@ const BottomSheetCard = ({
         onScrollEndDrag={handleEndDrag}
         onScroll={handleScroll}
       >
-        {children}
+        <View>
+          {children}
+        </View>
       </ScrollView>
-    </Animated.View>
+    </Animated.View >
   );
 };
 
@@ -311,6 +315,7 @@ const ExpandableBottomSheetCard = ({
   onExpansion,
   onCollapse
 }) => {
+  const insets = useSafeAreaInsets();
   const [headerHeight, setHeaderHeight] = useState(null);
   const [contentHeight, setContentHeight] = useState(null);
   const [footerHeight, setFooterHeight] = useState(null);
@@ -346,11 +351,22 @@ const ExpandableBottomSheetCard = ({
 
   const calculatedFooterHeight = footerContent ? footerHeight : 0;
   const calculatedMinHeight = headerHeight + calculatedFooterHeight;
+  const { top } = insets;
+  const calculatedHeightForStatusBar = Platform.OS === 'ios' ? (top > 0 ? (top * 2 + 20) : 60) : (top > 0 ? top : 30);
+  console.log("contentHeight", contentHeight);
   console.log("calculatedFooterHeight", calculatedFooterHeight);
-  const calculatedMaxHeightForScrollView = scrollMaxHeight ?? (SCREEN_HEIGHT - STATUS_BAR_HEIGHT - calculatedFooterHeight - 30);
-  console.log(`(${SCREEN_HEIGHT}, ${STATUS_BAR_HEIGHT}, ${calculatedFooterHeight} )calculatedMaxHeightForScrollView: `, calculatedMaxHeightForScrollView);
+  let baseMaxHeight = scrollMaxHeight ?? (
+    SCREEN_HEIGHT - calculatedHeightForStatusBar - calculatedFooterHeight - (Platform.OS === 'ios' ? 40 : 27)
+  );
+
+  const calculatedMaxHeightForScrollView = contentHeight < baseMaxHeight
+    ? contentHeight
+    : baseMaxHeight;
+
+  console.log("calculatedMaxHeightForScrollView", calculatedMaxHeightForScrollView);
+
   return (
-    <View style={[{ position: 'absolute', bottom: 0, left: 0, right: 0, }]}>
+    <View style={[{ position: 'absolute', bottom: 0, left: 0, right: 0 }]}>
       <BottomSheetCard
         initialPosition={initialPosition}
         sheetStyle={sheetStyle}
@@ -380,5 +396,6 @@ const ExpandableBottomSheetCard = ({
 
 
 export default ExpandableBottomSheetCard;
+
 
 

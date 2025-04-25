@@ -1,65 +1,93 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, StatusBar } from 'react-native';
-import { Slot, useNavigationContainerRef } from 'expo-router';
+import { Slot, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SheetProvider, SheetManager } from 'react-native-actions-sheet';
+import { usePathname } from 'expo-router';
+
+import './sheets.jsx';
 
 
 export default function RootLayout() {
   const [menuVisible, setMenuVisible] = useState(false);
-  const navigationRef = useNavigationContainerRef();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const pageTitle = navigationRef.getCurrentRoute?.()?.name || 'Home';
   console.log("status bar height", StatusBar.currentHeight);
 
+  const goToPageAndClose = (page) => {
+    if (page === pathname) {
+      setMenuVisible(false);
+      router.replace(pathname);
+      return;
+    }
+    SheetManager.hide("custom-sheet");
+    router.push(page);
+    setMenuVisible(false);
+  };
+
   return (
+
     <SafeAreaProvider>
       <GestureHandlerRootView>
-        <StatusBar barStyle="dark-content" backgroundColor={'#fff'} />
-        <View style={styles.container}>
-          {/* Status bar padding */}
-          <View style={styles.statusBarSpacer} />
+        <SheetProvider>
+
+          <StatusBar barStyle="dark-content" backgroundColor={'#fff'} />
+          <View style={styles.container}>
+            {/* Status bar padding */}
+            <View style={styles.statusBarSpacer} />
 
 
-          {/* Header */}
-          <View style={styles.headerContainer}>
-            {/* Header background and title */}
-            <View style={styles.header}>
-              <Text style={styles.pageTitle}>{pageTitle}</Text>
+            {/* Header */}
+            <View style={styles.headerContainer}>
+              {/* Header background and title */}
+              <View style={styles.header}>
+              </View>
+
+              {/* Floating menu button inside the container */}
+              <TouchableOpacity
+                style={styles.menuButton}
+                onPress={() => setMenuVisible(true)}
+              >
+                <Ionicons name="menu" size={24} color="white" />
+              </TouchableOpacity>
             </View>
 
-            {/* Floating menu button inside the container */}
-            <TouchableOpacity
-              style={styles.menuButton}
-              onPress={() => setMenuVisible(true)}
+            {/* Side Menu Modal */}
+            <Modal
+              visible={menuVisible}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setMenuVisible(false)}
             >
-              <Ionicons name="menu" size={24} color="white" />
-            </TouchableOpacity>
-          </View>
+              <View style={styles.modalOverlay} >
+                <View style={styles.sideMenu}>
+                  <Pressable onPress={() => setMenuVisible(false)}>
+                    <Ionicons name="close" size={24} color="black" />
+                  </Pressable>
 
-          {/* Side Menu Modal */}
-          <Modal
-            visible={menuVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setMenuVisible(false)}
-          >
-            <Pressable style={styles.modalOverlay} onPress={() => setMenuVisible(false)}>
-              <View style={styles.sideMenu}>
-                <Text style={styles.link}>Home</Text>
-                <Text style={styles.link}>Profile</Text>
-                <Text style={styles.link}>Settings</Text>
-                {/* Add more links here */}
+                  <Pressable onPress={() => goToPageAndClose("/")}>
+                    <Text style={styles.link}>Home</Text>
+                  </Pressable>
+
+                  <Pressable onPress={() => goToPageAndClose("/message")}>
+                    <Text style={styles.link}>message</Text>
+                  </Pressable>
+
+                  {/* Add more links here */}
+                </View>
               </View>
-            </Pressable>
-          </Modal>
 
-          {/* Main content */}
+            </Modal>
+
+            {/* Main content */}
 
 
-          <Slot />
-        </View>
+            <Slot />
+          </View>
+        </SheetProvider>
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );
@@ -112,6 +140,6 @@ const styles = StyleSheet.create({
   },
   link: {
     fontSize: 18,
-    marginBottom: 20,
+    marginVertical: 20,
   },
 });
