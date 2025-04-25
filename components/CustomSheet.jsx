@@ -30,62 +30,84 @@ const CustomSheet = () => {
     };
 
     return (
+        <>
+            <ActionSheet
+                gestureEnabled
+                containerStyle={styles.sheet}
+                safeAreaInsets={insets}
+                backgroundInteractionEnabled
+                isModal={false}
+                closable={false}
+                snapPoints={[50, 100]}
+                initialSnapIndex={0}
+                headerAlwaysVisible={false}
+                drawUnderStatusBar={false}
+                disableDragBeyondMinimumSnapPoint
+                indicatorStyle={styles.indicator}
+                withNestedSheetProvider={false}
+                zIndex={1000}
+            >
 
-        <ActionSheet
-            gestureEnabled
-            containerStyle={styles.sheet}
-            safeAreaInsets={insets}
-            backgroundInteractionEnabled
-            isModal={false}
-            closable={false}
-            snapPoints={[50, 100]}
-            initialSnapIndex={0}
-            headerAlwaysVisible={false}
-            drawUnderStatusBar={false}
-            disableDragBeyondMinimumSnapPoint
-            indicatorStyle={styles.indicator}
-            withNestedSheetProvider={false}
-        >
-
-            <Pressable style={styles.button} onPress={handleGoingHome}>
-                <Text style={styles.filterText}>Go Home</Text>
-            </Pressable>
-            <View style={styles.header}>
-                <Text style={styles.headerText}>Task Status Filter</Text>
-                <View style={styles.filterRow}>
-                    {['all', 'completed', 'declined', 'in progress'].map(status => (
-                        <Pressable
-                            key={status}
-                            onPress={() => setFilter(status)}
-                            style={[
-                                styles.filterButton,
-                                filter === status && styles.activeFilterButton,
-                            ]}
-                        >
-                            <Text style={styles.filterText}>{status}</Text>
-                        </Pressable>
-                    ))}
-                </View>
-            </View>
-
-            <ScrollView style={styles.content}>
-                {filteredCards.map(card => (
-                    <View key={card.id} style={styles.card}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.cardTitle}>{card.title}</Text>
-                            <Text style={styles.cardStatus}>Status: {card.status}</Text>
-                        </View>
-                        <Pressable onPress={() => deleteCard(card.id)} style={styles.deleteButton}>
-                            <Text style={styles.deleteButtonText}>Delete</Text>
-                        </Pressable>
+                <Pressable style={styles.button} onPress={handleGoingHome}>
+                    <Text style={styles.filterText}>Go Home</Text>
+                </Pressable>
+                <View style={styles.header}>
+                    <Text style={styles.headerText}>Task Status Filter</Text>
+                    <View style={styles.filterRow}>
+                        {['all', 'completed', 'declined', 'in progress'].map(status => (
+                            <Pressable
+                                key={status}
+                                onPress={() => setFilter(status)}
+                                style={[
+                                    styles.filterButton,
+                                    filter === status && styles.activeFilterButton,
+                                ]}
+                            >
+                                <Text style={styles.filterText}>{status}</Text>
+                            </Pressable>
+                        ))}
                     </View>
-                ))}
-            </ScrollView>
-        </ActionSheet>
+                </View>
+
+                <ScrollView style={styles.content}>
+                    {filteredCards.map(card => (
+                        <View key={card.id} style={styles.card}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.cardTitle}>{card.title}</Text>
+                                <Text style={styles.cardStatus}>Status: {card.status}</Text>
+                            </View>
+                            <Pressable onPress={() => deleteCard(card.id)} style={styles.deleteButton}>
+                                <Text style={styles.deleteButtonText}>Delete</Text>
+                            </Pressable>
+                        </View>
+                    ))}
+                </ScrollView>
+            </ActionSheet>
+
+            <View style={styles.footer}><Text style={styles.footerText}>Footer</Text></View>
+        </>
+
     );
 };
 
 const styles = StyleSheet.create({
+    footer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 50,
+        backgroundColor: 'red',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1001,
+    },
+    footerText: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#3b82f6',
+    },
+
     button: {
         fontSize: 16,
         fontWeight: '500',
